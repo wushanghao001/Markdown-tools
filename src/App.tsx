@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import html2pdf from 'html2pdf.js';
 import { marked } from 'marked';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Note } from './types';
 
 const App: React.FC = () => {
@@ -164,25 +166,29 @@ const App: React.FC = () => {
 
     // 处理编辑器相关快捷键
     if (e.ctrlKey && !e.altKey && !e.metaKey) {
-      // 阻止浏览器默认行为
-      e.preventDefault();
-      
       if (e.shiftKey) {
         // Ctrl + Shift 组合键
         switch (e.key) {
           // 代码块
           case 'c':
           case 'C':
-            insertMarkdown(beforeSelection, afterSelection, '```\n', '\n```', selectedText);
+            e.preventDefault();
+            if (selectedText) {
+              insertMarkdown(beforeSelection, afterSelection, '```javascript\n', '\n```', selectedText);
+            } else {
+              insertMarkdown(beforeSelection, afterSelection, '```javascript\n', '\n```', '');
+            }
             break;
           // 列表
           case 'l':
           case 'L':
+            e.preventDefault();
             insertMarkdown(beforeSelection, afterSelection, '- ', '', selectedText);
             break;
           // 引用
           case 'q':
           case 'Q':
+            e.preventDefault();
             insertMarkdown(beforeSelection, afterSelection, '> ', '', selectedText);
             break;
           default:
@@ -193,27 +199,33 @@ const App: React.FC = () => {
         switch (e.key) {
           // 标题 1-3
           case '1':
+            e.preventDefault();
             insertMarkdown(beforeSelection, afterSelection, '# ', ' ', selectedText);
             break;
           case '2':
+            e.preventDefault();
             insertMarkdown(beforeSelection, afterSelection, '## ', ' ', selectedText);
             break;
           case '3':
+            e.preventDefault();
             insertMarkdown(beforeSelection, afterSelection, '### ', ' ', selectedText);
             break;
           // 粗体
           case 'b':
           case 'B':
+            e.preventDefault();
             insertMarkdown(beforeSelection, afterSelection, '**', '**', selectedText);
             break;
           // 斜体
           case 'i':
           case 'I':
+            e.preventDefault();
             insertMarkdown(beforeSelection, afterSelection, '*', '*', selectedText);
             break;
           // 链接
           case 'k':
           case 'K':
+            e.preventDefault();
             if (selectedText) {
               insertMarkdown(beforeSelection, afterSelection, '[', '](url)', selectedText);
             } else {
@@ -542,7 +554,30 @@ const App: React.FC = () => {
                   style={{ flex: 1, padding: '16px', overflowY: 'auto', color: 'white' }}
                   onScroll={handlePreviewScroll}
                 >
-                  <ReactMarkdown>
+                  <ReactMarkdown 
+                    components={{
+                      code({ node, inline, className, children, ...props }) {
+                        const match = /language-(\w+)/.exec(className || '');
+                        if (!inline && match) {
+                          return (
+                            <SyntaxHighlighter
+                              style={vscDarkPlus}
+                              language={match[1]}
+                              PreTag="div"
+                              {...props}
+                            >
+                              {String(children).replace(/\n$/, '')}
+                            </SyntaxHighlighter>
+                          );
+                        }
+                        return (
+                          <code className={className} {...props}>
+                            {children}
+                          </code>
+                        );
+                      }
+                    }}
+                  >
                     {editorContent}
                   </ReactMarkdown>
                 </div>
